@@ -1,8 +1,11 @@
 import numpy as np
+import os.path
 import scipy.sparse as sparse
+import time
 import warnings
 from learning_utils import sparse_abs
 from lstm import LSTMModel
+from subprocess import call
 from sklearn import linear_model
 
 DEFAULT_MU = 1e-6
@@ -201,6 +204,50 @@ class LogReg(NoiseAwareModel):
 
     def marginals(self, X):
         return odds_to_prob(X.dot(self.w))
+
+
+class FastText(NoiseAwareModel):
+    """fastText"""
+    def __init__(self):
+        self.ft_dir = os.path.join('..', 'fastText')
+        self.model_dir = os.path.join(self.ft_dir, str(int(time.time())))
+        self.marginals_path = os.path.join(self.model_dir, 'training.marginals')
+        self.data_path = os.path.join(self.model_dir, 'training.data')
+        self.test_path = os.path.join(self.model_dir, 'test.data')
+        self.model = os.path.join(self.model_dir, 'model')
+        self.predict_path = os.path.join(self.model_dir, 'test.predict')
+
+    def _write_marginals(training_marginals, filepath):
+        np.set_printoptions(suppress=True)
+        np.savetxt(filepath, training_marginals)
+
+    def _write_data(training_candidates, filepath):
+        pass
+
+    def train(self, training_candidates, training_marginals, **params):
+        self._write_marginals(training_marginals, self.marginals_path)
+        self._write_data(training_candidates, self.data_path)
+
+        command = [
+            os.path.join(self.ft_dir, 'fastText'),
+            'train',
+            '-input', self.data_path,
+            '-marginals', self.marginals_path,
+            '-output', self.model_path,
+        ] + ['-{0} {1}'.format(k, v) for k, v in params]
+        call(command)
+
+    def marginals(self, test_candidates):
+        self._write_data(test_candidates, self.test_path)
+
+        command = [
+            os.path.join(self.ft_dir, 'fastText'),
+            'predict', self.model_path + '.bin',
+            '-input', self.data_path,
+            '>', self.predict_path,
+        ]
+        call(command)
+        return np.loadtxt(self.predict_path)
 
 
 class LSTM(NoiseAwareModel):
