@@ -208,7 +208,7 @@ class LogReg(NoiseAwareModel):
 
 class FastText(NoiseAwareModel):
     """fastText"""
-    def __init__(self):
+    def __init__(self, featurizer=None):
         self.ft_dir = os.path.join('..', 'fastText')
         self.model_dir = os.path.join(self.ft_dir, str(int(time.time())))
         self.marginals_path = os.path.join(self.model_dir, 'training.marginals')
@@ -216,13 +216,21 @@ class FastText(NoiseAwareModel):
         self.test_path = os.path.join(self.model_dir, 'test.data')
         self.model = os.path.join(self.model_dir, 'model')
         self.predict_path = os.path.join(self.model_dir, 'test.predict')
+        self.featurizer = featurizer
 
     def _write_marginals(training_marginals, filepath):
         np.set_printoptions(suppress=True)
         np.savetxt(filepath, training_marginals)
 
     def _write_data(training_candidates, filepath):
-        pass
+        with open(self.data_path, 'wb') as f:
+            if not self.featurizer:
+                f.writelines(c.span0.context.text for c in training_candidates)
+            else:
+                f.writelines(
+                    ' '.join(self.featurizer.get_feats(c)
+                    for c in training_candidates
+                )
 
     def train(self, training_candidates, training_marginals, **params):
         self._write_marginals(training_marginals, self.marginals_path)
