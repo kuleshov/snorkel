@@ -98,8 +98,8 @@ class OrderingThrottler(Throttler):
         return True if getattr(cell0, ax).position <= getattr(cell1, ax).position \
             else False
 
-class OverlapThrottler(Throttler):
-    """Only keeps pairs of spans that overlap"""
+class ContainmentThrottler(Throttler):
+    """Only keeps pairs of spans that are contained in one another"""
     def __init__(self):
         pass
 
@@ -113,7 +113,7 @@ class OverlapThrottler(Throttler):
         if span0.parent != span1.parent: return False            
         start0, end0 = span0.char_start, span0.char_end
         start1, end1 = span1.char_start, span1.char_end
-        return True if start1 <= start0 <= end1 or start1 <= end0 <= end1 else False
+        return True if (start1 <= start0 <= end0 <= end1) or (start0 <= start1 <= end1 <= end0) else False
 
 class WordLengthThrottler(Throttler):
     """Filter spans by lnumber of words"""
