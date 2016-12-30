@@ -246,3 +246,4 @@ class SentenceNgramViewer(Viewer):
 
             html += self._tag_span(s[start:end+1], cids, gold=len(gcids) > 0)
         return html
+
